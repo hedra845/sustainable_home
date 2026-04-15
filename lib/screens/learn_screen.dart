@@ -154,9 +154,10 @@ class _LearnScreenState extends State<LearnScreen> {
                               children: [
                                 Text(
                                   AppStrings.get('learnHeaderTitle', context),
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
+                                    color: colorScheme.onSurface,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
@@ -166,7 +167,7 @@ class _LearnScreenState extends State<LearnScreen> {
                                     context,
                                   ),
                                   style: TextStyle(
-                                    color: colorScheme.onSurfaceVariant,
+                                    color: colorScheme.onSurface,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),

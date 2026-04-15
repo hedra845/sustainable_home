@@ -36,8 +36,8 @@ class HubHeader extends StatelessWidget {
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 44),
+        child: SizedBox(
+          height: 44,
           child: Row(
             children: [
               // اللوجو (أقصى اليسار في الإنجليزية، أقصى اليمين في العربية)
@@ -62,21 +62,18 @@ class HubHeader extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 14,
+                        fontSize: 12,
+                        color: colorScheme.onSurface,
                       ),
                     ),
                     Text(
                       subtitle,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: onSurfaceVariant,
                         fontWeight: FontWeight.w600,
-                        fontSize: 10,
+                        fontSize: 8,
                         height: 1.1,
                       ),
                     ),
@@ -201,18 +198,15 @@ class HubTile extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
+                        color: colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w600,
@@ -270,20 +264,16 @@ class ImpactStrip extends StatelessWidget {
                         const SizedBox(height: 6),
                         Text(
                           item.value,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
+                            color: colorScheme.onSurface,
                           ),
                         ),
                         Text(
                           item.label,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: colorScheme.onSurfaceVariant,
+                            color: colorScheme.onSurface,
                             fontWeight: FontWeight.w600,
                             fontSize: 11,
                           ),
@@ -331,11 +321,10 @@ class ProgressCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
                   ),
                 ),
               ),
@@ -367,10 +356,8 @@ class ProgressCard extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             leadingText,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: colorScheme.onSurfaceVariant,
+              color: colorScheme.onSurface,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -497,8 +484,6 @@ class WelcomeCard extends StatelessWidget {
                     ),
                     child: Text(
                       buttonText,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),

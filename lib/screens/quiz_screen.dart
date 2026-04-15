@@ -14,47 +14,6 @@ class QuizScreen extends StatefulWidget {
 }
 
 class _QuizScreenState extends State<QuizScreen> {
-  final List<_QuizQuestion> _questions = const [
-    _QuizQuestion(
-      questionAr: 'ما فائدة استخدام المواصلات العامة؟',
-      questionEn: 'What is the benefit of using public transport?',
-      optionsAr: [
-        'تقلل تلوث الهواء',
-        'تستخدم طاقة أكثر',
-        'تأخذ مساحة أكبر',
-        'تنتج نفايات أكثر',
-      ],
-      optionsEn: [
-        'Reduces air pollution',
-        'Uses more energy',
-        'Takes up more space',
-        'Produces more waste',
-      ],
-      correctIndex: 0,
-      hintAr: 'فكر في عدد السيارات التي يتم الاستغناء عنها.',
-      hintEn: 'Think about the number of cars being replaced.',
-    ),
-    _QuizQuestion(
-      questionAr: 'أي خيار يقلل النفايات المنزلية؟',
-      questionEn: 'Which option reduces household waste?',
-      optionsAr: [
-        'شراء عبوات أحادية الاستخدام',
-        'إعادة استخدام العلب والمرطبانات',
-        'رمي بقايا الطعام',
-        'زيادة التغليف',
-      ],
-      optionsEn: [
-        'Buying single-use containers',
-        'Reusing cans and jars',
-        'Throwing away food scraps',
-        'Increasing packaging',
-      ],
-      correctIndex: 1,
-      hintAr: 'الهدف هو تقليل ما تشتريه وتعيد استخدامه.',
-      hintEn: 'The goal is to reduce what you buy and reuse it.',
-    ),
-  ];
-
   int _index = 0;
   int? _selected;
   bool _showAnswer = false;
@@ -64,6 +23,7 @@ class _QuizScreenState extends State<QuizScreen> {
   bool _isFinished = false;
   bool _initialized = false;
   bool _isPreviouslyFinished = false;
+  final List<Map<String, dynamic>> _userAnswers = [];
 
   @override
   void didChangeDependencies() {
@@ -82,6 +42,15 @@ class _QuizScreenState extends State<QuizScreen> {
   @override
   Widget build(BuildContext context) {
     final model = SustainabilityProvider.of(context);
+    final questions = model.quizQuestions;
+
+    if (questions.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: Text(AppStrings.get('quiz', context))),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -90,8 +59,8 @@ class _QuizScreenState extends State<QuizScreen> {
         duration: const Duration(milliseconds: 500),
         child:
             _isFinished
-                ? _buildResultScreen(context, colorScheme)
-                : _buildQuizContent(context, model, colorScheme),
+                ? _buildResultScreen(context, colorScheme, questions.length)
+                : _buildQuizContent(context, model, colorScheme, questions),
       ),
     );
   }
@@ -100,11 +69,12 @@ class _QuizScreenState extends State<QuizScreen> {
     BuildContext context,
     SustainabilityModel model,
     ColorScheme colorScheme,
+    List<QuizQuestion> questions,
   ) {
-    final q = _questions[_index];
-    final progress = (_index + 1) / _questions.length;
+    final q = questions[_index];
+    final progress = (_index + 1) / questions.length;
     final locale = Localizations.localeOf(context);
-    final options = q.options(locale);
+    final options = q.optionsFor(locale);
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -138,14 +108,14 @@ class _QuizScreenState extends State<QuizScreen> {
                     ),
                     const SizedBox(width: 10),
                     Text(
-                      '${_index + 1}/${_questions.length}',
+                      '${_index + 1}/${questions.length}',
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  q.question(locale),
+                  q.questionFor(locale),
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -188,7 +158,17 @@ class _QuizScreenState extends State<QuizScreen> {
                             _selected = i;
                             _showAnswer = false;
                             _showHint = false;
-                            if (i == q.correctIndex) {
+
+                            final correct = i == q.correctIndex;
+
+                            // تخزين الإجابة محلياً لإرسالها في النهاية
+                            _userAnswers.add({
+                              'question_id': q.id,
+                              'selected_option_index': i,
+                              'is_correct': correct,
+                            });
+
+                            if (correct) {
                               _correctCount++;
                               if (!_awarded) {
                                 _awarded = true;
@@ -236,7 +216,7 @@ class _QuizScreenState extends State<QuizScreen> {
                     ),
                   );
                 }),
-                if (_showHint) ...[
+                if (_showHint && q.hintFor(locale) != null) ...[
                   const SizedBox(height: 6),
                   Container(
                     padding: const EdgeInsets.all(12),
@@ -256,7 +236,7 @@ class _QuizScreenState extends State<QuizScreen> {
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            q.hint(locale),
+                            q.hintFor(locale)!,
                             style: const TextStyle(fontWeight: FontWeight.w600),
                           ),
                         ),
@@ -272,7 +252,7 @@ class _QuizScreenState extends State<QuizScreen> {
                       Expanded(
                         flex: 2,
                         child: FilledButton(
-                          onPressed: _next,
+                          onPressed: () => _next(questions.length),
                           style: FilledButton.styleFrom(
                             padding: EdgeInsets.zero,
                             shape: RoundedRectangleBorder(
@@ -280,7 +260,7 @@ class _QuizScreenState extends State<QuizScreen> {
                             ),
                           ),
                           child: Text(
-                            _index + 1 < _questions.length
+                            _index + 1 < questions.length
                                 ? AppStrings.get('nextQuestion', context)
                                 : (Localizations.localeOf(
                                           context,
@@ -410,7 +390,11 @@ class _QuizScreenState extends State<QuizScreen> {
     );
   }
 
-  Widget _buildResultScreen(BuildContext context, ColorScheme colorScheme) {
+  Widget _buildResultScreen(
+    BuildContext context,
+    ColorScheme colorScheme,
+    int totalQuestions,
+  ) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -446,7 +430,7 @@ class _QuizScreenState extends State<QuizScreen> {
             const SizedBox(height: 8),
             if (!_isPreviouslyFinished || _correctCount > 0)
               Text(
-                '${AppStrings.get('yourScore', context)}: $_correctCount/${_questions.length}',
+                '${AppStrings.get('yourScore', context)}: $_correctCount/$totalQuestions',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -459,13 +443,13 @@ class _QuizScreenState extends State<QuizScreen> {
                   ? (Localizations.localeOf(context).languageCode == 'ar'
                       ? 'لقد أتممت الاختبار مسبقاً بنجاح!'
                       : 'You have already completed the quiz successfully!')
-                  : (_correctCount == _questions.length
+                  : (_correctCount == totalQuestions
                       ? AppStrings.get('wellDone', context)
                       : AppStrings.get('keepLearning', context)),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
-                color: colorScheme.onSurfaceVariant,
+                color: colorSurfaceVariant(colorScheme),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -503,8 +487,11 @@ class _QuizScreenState extends State<QuizScreen> {
     );
   }
 
-  void _next() {
-    if (_index + 1 < _questions.length) {
+  Color colorSurfaceVariant(ColorScheme colorScheme) =>
+      colorScheme.onSurfaceVariant;
+
+  void _next(int totalQuestions) {
+    if (_index + 1 < totalQuestions) {
       setState(() {
         _index++;
         _selected = null;
@@ -520,6 +507,14 @@ class _QuizScreenState extends State<QuizScreen> {
 
       // 2. تحديث حالة النموذج وقاعدة البيانات
       final model = SustainabilityProvider.of(context);
+
+      // إرسال جميع الإجابات والنتيجة النهائية
+      model.submitQuizAnswers(_userAnswers);
+      model.submitQuizResult(
+        score: _correctCount,
+        totalQuestions: totalQuestions,
+      );
+
       model.setQuizCompleted(true).then((_) {
         // 3. التأكد من ظهور التقييم بعد تحديث الحالة
         if (mounted) {
@@ -542,97 +537,7 @@ class _QuizScreenState extends State<QuizScreen> {
       _awarded = false;
       _correctCount = 0;
       _isFinished = false;
+      _userAnswers.clear();
     });
   }
-}
-
-void _showQuickActions(BuildContext context, SustainabilityModel model) {
-  showModalBottomSheet(
-    context: context,
-    showDragHandle: true,
-    builder: (context) {
-      return SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                AppStrings.get('quickActions', context),
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              FilledButton.tonalIcon(
-                onPressed: () {
-                  model.addImpact(
-                    actionType: 'quick_transport',
-                    co2DeltaKg: 0.6,
-                  );
-                  Navigator.of(context).pop();
-                },
-                icon: const Icon(Icons.directions_bus_outlined),
-                label: Text(AppStrings.get('actionTransport', context)),
-              ),
-              const SizedBox(height: 10),
-              FilledButton.tonalIcon(
-                onPressed: () {
-                  model.addImpact(
-                    actionType: 'quick_recycle',
-                    wasteDeltaKg: 0.4,
-                  );
-                  Navigator.of(context).pop();
-                },
-                icon: const Icon(Icons.recycling),
-                label: Text(AppStrings.get('actionRecycle', context)),
-              ),
-              const SizedBox(height: 10),
-              FilledButton.tonalIcon(
-                onPressed: () {
-                  model.addImpact(
-                    actionType: 'quick_tree',
-                    co2DeltaKg: 0.3,
-                    wasteDeltaKg: 0.2,
-                  );
-                  Navigator.of(context).pop();
-                },
-                icon: const Icon(Icons.park_outlined),
-                label: Text(AppStrings.get('actionTree', context)),
-              ),
-            ],
-          ),
-        ),
-      );
-    },
-  );
-}
-
-class _QuizQuestion {
-  const _QuizQuestion({
-    required this.questionAr,
-    required this.questionEn,
-    required this.optionsAr,
-    required this.optionsEn,
-    required this.correctIndex,
-    required this.hintAr,
-    required this.hintEn,
-  });
-
-  final String questionAr;
-  final String questionEn;
-  final List<String> optionsAr;
-  final List<String> optionsEn;
-  final int correctIndex;
-  final String hintAr;
-  final String hintEn;
-
-  String question(Locale locale) =>
-      locale.languageCode == 'ar' ? questionAr : questionEn;
-  List<String> options(Locale locale) =>
-      locale.languageCode == 'ar' ? optionsAr : optionsEn;
-  String hint(Locale locale) => locale.languageCode == 'ar' ? hintAr : hintEn;
 }

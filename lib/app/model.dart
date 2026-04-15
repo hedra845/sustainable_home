@@ -202,6 +202,48 @@ class SurveyQuestion {
 
 enum StoryKind { all, news, story }
 
+class QuizQuestion {
+  QuizQuestion({
+    required this.id,
+    required this.questionAr,
+    required this.questionEn,
+    required this.optionsAr,
+    required this.optionsEn,
+    required this.correctIndex,
+    this.hintAr,
+    this.hintEn,
+  });
+
+  factory QuizQuestion.fromRow(Map<String, dynamic> row) {
+    return QuizQuestion(
+      id: row['id'].toString(),
+      questionAr: (row['question_ar'] ?? '').toString(),
+      questionEn: (row['question_en'] ?? '').toString(),
+      optionsAr: List<String>.from(row['options_ar'] ?? []),
+      optionsEn: List<String>.from(row['options_en'] ?? []),
+      correctIndex: (row['correct_index'] as num?)?.toInt() ?? 0,
+      hintAr: row['hint_ar']?.toString(),
+      hintEn: row['hint_en']?.toString(),
+    );
+  }
+
+  final String id;
+  final String questionAr;
+  final String questionEn;
+  final List<String> optionsAr;
+  final List<String> optionsEn;
+  final int correctIndex;
+  final String? hintAr;
+  final String? hintEn;
+
+  String questionFor(Locale locale) =>
+      locale.languageCode == 'ar' ? questionAr : questionEn;
+  List<String> optionsFor(Locale locale) =>
+      locale.languageCode == 'ar' ? optionsAr : optionsEn;
+  String? hintFor(Locale locale) =>
+      locale.languageCode == 'ar' ? hintAr : hintEn;
+}
+
 class AppStory {
   const AppStory({
     required this.id,
@@ -304,21 +346,34 @@ class SustainabilityModel extends ChangeNotifier {
     Locale initialLocale = const Locale('ar'),
     ThemeMode initialThemeMode = ThemeMode.light,
     bool initialHasSeenOnboarding = false,
+    bool initialHasSelectedLanguage = false,
+    bool initialHasCompletedSurvey = false,
   }) : _locale = initialLocale,
        _themeMode = initialThemeMode,
        _hasSeenOnboarding = initialHasSeenOnboarding,
+       _hasSelectedLanguage = initialHasSelectedLanguage,
+       _hasCompletedSurvey = initialHasCompletedSurvey,
        _isAuthenticated = false {
+    // Always seed local data first so we don't have empty screens
+    _seedLocal();
+
     if (supabaseEnabled) {
       unawaited(_bootstrapSupabase());
-    } else {
-      _seedLocal();
     }
   }
 
   final bool supabaseEnabled;
 
-  SupabaseClient? get _client =>
-      supabaseEnabled ? Supabase.instance.client : null;
+  SupabaseClient? get _client {
+    if (!supabaseEnabled) return null;
+    try {
+      return Supabase.instance.client;
+    } catch (e) {
+      debugPrint('Error accessing Supabase client: $e');
+      return null;
+    }
+  }
+
   StreamSubscription<AuthState>? _authSub;
   RealtimeChannel? _notificationsChannel;
   RealtimeChannel? _publicDataChannel;
@@ -332,6 +387,7 @@ class SustainabilityModel extends ChangeNotifier {
   double _wasteReducedKg = 0;
   int _weeklyGoal = 4;
   bool _hasSeenOnboarding;
+  bool _hasSelectedLanguage;
   bool _hasCompletedSurvey = false;
   bool _hasCompletedSurvey2 = false;
   bool _hasCompletedQuiz = false;
@@ -342,6 +398,7 @@ class SustainabilityModel extends ChangeNotifier {
   final List<Challenge> _challenges = <Challenge>[];
   final List<SurveyQuestion> _surveyQuestions = <SurveyQuestion>[];
   final List<SurveyQuestion> _surveyQuestions2 = <SurveyQuestion>[];
+  final List<QuizQuestion> _quizQuestions = <QuizQuestion>[];
   final List<EducationalVideo> _educationalVideos = <EducationalVideo>[];
   final List<AppStory> _stories = <AppStory>[];
   final Set<String> _completedChallengeIds = <String>{};
@@ -358,7 +415,8 @@ class SustainabilityModel extends ChangeNotifier {
 
   double get co2SavedKg => _co2SavedKg;
   double get wasteReducedKg => _wasteReducedKg;
-  int get weeklyGoal => _challenges.length;
+  int get weeklyGoal =>
+      _challenges.isNotEmpty ? _challenges.length : _weeklyGoal;
 
   List<SdgGoal> get sdgGoals => List.unmodifiable(_sdgGoals);
   List<Challenge> get challenges => List.unmodifiable(_challenges);
@@ -366,6 +424,7 @@ class SustainabilityModel extends ChangeNotifier {
       List.unmodifiable(_surveyQuestions);
   List<SurveyQuestion> get surveyQuestions2 =>
       List.unmodifiable(_surveyQuestions2);
+  List<QuizQuestion> get quizQuestions => List.unmodifiable(_quizQuestions);
   List<EducationalVideo> get educationalVideos =>
       List.unmodifiable(_educationalVideos);
   List<AppStory> get stories => List.unmodifiable(_stories);
@@ -383,6 +442,7 @@ class SustainabilityModel extends ChangeNotifier {
   bool get hasCompletedQuiz => _hasCompletedQuiz;
   bool get hasCompletedEvaluation => _hasCompletedEvaluation;
   bool get hasSeenOnboarding => _hasSeenOnboarding;
+  bool get hasSelectedLanguage => _hasSelectedLanguage;
   bool get isAuthenticated => _isAuthenticated;
 
   bool get canShowSurveyAndEvaluation =>
@@ -407,30 +467,35 @@ class SustainabilityModel extends ChangeNotifier {
   }
 
   Future<void> _bootstrapSupabase() async {
-    final client = _client!;
+    final client = _client;
+    if (client == null) return;
 
-    _isAuthenticated = client.auth.currentSession != null;
-    if (_isAuthenticated) {
-      _startNotificationsRealtime();
-    }
-    _startPublicDataRealtime();
-    _authSub = client.auth.onAuthStateChange.listen((data) {
-      final session = data.session;
-      _isAuthenticated = session != null;
+    try {
+      _isAuthenticated = client.auth.currentSession != null;
       if (_isAuthenticated) {
         _startNotificationsRealtime();
-        unawaited(_refreshAllForUser());
-      } else {
-        _stopNotificationsRealtime();
-        _completedChallengeIds.clear();
-        _notifications.clear();
       }
-      notifyListeners();
-    });
+      _startPublicDataRealtime();
+      _authSub = client.auth.onAuthStateChange.listen((data) {
+        final session = data.session;
+        _isAuthenticated = session != null;
+        if (_isAuthenticated) {
+          _startNotificationsRealtime();
+          unawaited(_refreshAllForUser());
+        } else {
+          _stopNotificationsRealtime();
+          _completedChallengeIds.clear();
+          _notifications.clear();
+        }
+        notifyListeners();
+      });
 
-    await refreshPublicData();
-    if (_isAuthenticated) {
-      await _refreshAllForUser();
+      await refreshPublicData();
+      if (_isAuthenticated) {
+        await _refreshAllForUser();
+      }
+    } catch (e) {
+      debugPrint('Supabase bootstrap failed: $e');
     }
     notifyListeners();
   }
@@ -570,189 +635,249 @@ class SustainabilityModel extends ChangeNotifier {
 
   void _seedLocal() {
     final now = DateTime.now();
-    _challenges.addAll([
-      Challenge(
-        id: 'bags',
-        titleEn: 'Avoid plastic bags',
-        titleAr: 'تجنب الأكياس البلاستيكية',
-        bodyEn: 'Use a reusable bag when shopping.',
-        bodyAr: 'استخدم حقيبة قماشية عند التسوق اليوم.',
-        co2DeltaKg: 0.2,
-        wasteDeltaKg: 0.15,
-        sortOrder: 1,
-      ),
-      Challenge(
-        id: 'water',
-        titleEn: 'Save water',
-        titleAr: 'قلّل استهلاك الماء',
-        bodyEn: 'Turn off the tap while brushing.',
-        bodyAr: 'أغلق الصنبور أثناء تنظيف الأسنان.',
-        co2DeltaKg: 0.1,
-        wasteDeltaKg: 0,
-        sortOrder: 2,
-      ),
-      Challenge(
-        id: 'recycle',
-        titleEn: 'Recycle at home',
-        titleAr: 'إعادة التدوير',
-        bodyEn: 'Separate paper and plastic.',
-        bodyAr: 'افصل الورق والبلاستيك في المنزل.',
-        co2DeltaKg: 0.15,
-        wasteDeltaKg: 0.25,
-        sortOrder: 3,
-      ),
-      Challenge(
-        id: 'transport',
-        titleEn: 'Green transport',
-        titleAr: 'نقل أخضر',
-        bodyEn: 'Walk, bike, or use public transport.',
-        bodyAr: 'جرّب المشي أو الدراجة لمسافة قصيرة.',
-        co2DeltaKg: 0.3,
-        wasteDeltaKg: 0,
-        sortOrder: 4,
-      ),
-    ]);
-    _surveyQuestions.addAll([
-      SurveyQuestion(
-        id: '1',
-        questionAr: 'العمر (بالسنوات)',
-        questionEn: 'Age (Years)',
-        type: 'text',
-        optionsAr: [],
-        optionsEn: [],
-        required: true,
-        sortOrder: 1,
-      ),
-      SurveyQuestion(
-        id: '2',
-        questionAr: 'الجنس',
-        questionEn: 'Gender',
-        type: 'radio',
-        optionsAr: ['ذكر', 'أنثى'],
-        optionsEn: ['Male', 'Female'],
-        required: true,
-        sortOrder: 2,
-      ),
-      SurveyQuestion(
-        id: '3',
-        questionAr: 'أعلى مستوى تعليمي',
-        questionEn: 'Highest Level of Education',
-        type: 'radio',
-        optionsAr: [
-          'ثانوية عامة أو ما يعادلها',
-          'تدريب مهني/تقني',
-          'درجة البكالوريوس',
-          'درجة الماجستير',
-          'دكتوراه أو أعلى',
-        ],
-        optionsEn: [
-          'High School or equivalent',
-          'Vocational/Technical Training',
-          'Bachelor\'s Degree',
-          'Master\'s Degree',
-          'Doctorate or higher',
-        ],
-        required: true,
-        sortOrder: 3,
-      ),
-      SurveyQuestion(
-        id: '4',
-        questionAr: 'تكوين الأسرة الحالي',
-        questionEn: 'Current Household Composition',
-        type: 'radio',
-        optionsAr: [
-          'أعيش بمفردي',
-          'أعيش مع شريك/زوج',
-          'أعيش مع شريك/زوج وأطفال',
-          'أعيش مع عائلة/أصدقاء آخرين',
-          'أخرى',
-        ],
-        optionsEn: [
-          'Live alone',
-          'Live with partner/spouse',
-          'Live with partner/spouse and child(ren)',
-          'Live with other family/friends',
-          'Other',
-        ],
-        required: true,
-        sortOrder: 4,
-      ),
-      SurveyQuestion(
-        id: '5',
-        questionAr: 'نوع السكن',
-        questionEn: 'Type of Residence',
-        type: 'radio',
-        optionsAr: ['شقة/كوندو', 'منزل لعائلة واحدة', 'أخرى'],
-        optionsEn: ['Apartment/Condo', 'Single-family house', 'Other'],
-        required: true,
-        sortOrder: 5,
-      ),
-      SurveyQuestion(
-        id: '6',
-        questionAr: 'هل تملك أم تستأجر منزلك؟',
-        questionEn: 'Do you own or rent your home?',
-        type: 'radio',
-        optionsAr: ['تملك', 'إيجار'],
-        optionsEn: ['Own', 'Rent'],
-        required: true,
-        sortOrder: 6,
-      ),
-      SurveyQuestion(
-        id: '7',
-        questionAr: 'بشكل عام، كيف تصف المنطقة التي تعيش فيها؟',
-        questionEn: 'How would you describe the area you live in?',
-        type: 'radio',
-        optionsAr: ['حضري (مدينة)', 'ضواحي', 'ريفي'],
-        optionsEn: ['Urban', 'Suburban', 'Rural'],
-        required: true,
-        sortOrder: 7,
-      ),
-    ]);
-    _surveyQuestions2.addAll([
-      SurveyQuestion(
-        id: 's2_1',
-        questionAr: 'ما هو شعورك تجاه الاستدامة بعد استخدام التطبيق؟',
-        questionEn: 'How do you feel about sustainability after using the app?',
-        type: 'radio',
-        optionsAr: ['متحمس جداً', 'مهتم', 'محايد', 'غير مهتم'],
-        optionsEn: ['Very Excited', 'Interested', 'Neutral', 'Not Interested'],
-        required: true,
-        sortOrder: 1,
-      ),
-      SurveyQuestion(
-        id: 's2_2',
-        questionAr: 'هل تنوي الاستمرار في التحديات الأسبوعية؟',
-        questionEn: 'Do you intend to continue the weekly challenges?',
-        type: 'radio',
-        optionsAr: ['نعم بالتأكيد', 'ربما', 'لا'],
-        optionsEn: ['Yes definitely', 'Maybe', 'No'],
-        required: true,
-        sortOrder: 2,
-      ),
-    ]);
-    _notifications.addAll([
-      AppNotification(
-        id: 'n1',
-        kind: NotificationKind.challenge,
-        title: 'تحدّي أسبوعي جديد',
-        body: 'أكمل 3 إجراءات صديقة للبيئة هذا الأسبوع لتتقدم.',
-        createdAt: now.subtract(const Duration(hours: 2)),
-        isRead: false,
-      ),
-      AppNotification(
-        id: 'n2',
-        kind: NotificationKind.tip,
-        title: 'نصيحة سريعة',
-        body: 'استخدم زجاجة قابلة لإعادة الاستخدام لتقليل البلاستيك.',
-        createdAt: now.subtract(const Duration(hours: 6)),
-        isRead: true,
-      ),
-    ]);
-    _leaderboard.addAll([
-      LeaderboardEntry(name: 'محمد خالد', points: 2500),
-      LeaderboardEntry(name: 'سارة منصور', points: 2300),
-      LeaderboardEntry(name: 'يوسف أحمد', points: 2100),
-    ]);
+    _challenges
+      ..clear()
+      ..addAll([
+        Challenge(
+          id: 'bags',
+          titleEn: 'Avoid plastic bags',
+          titleAr: 'تجنب الأكياس البلاستيكية',
+          bodyEn: 'Use a reusable bag when shopping.',
+          bodyAr: 'استخدم حقيبة قماشية عند التسوق اليوم.',
+          co2DeltaKg: 0.2,
+          wasteDeltaKg: 0.15,
+          sortOrder: 1,
+        ),
+        Challenge(
+          id: 'water',
+          titleEn: 'Save water',
+          titleAr: 'قلّل استهلاك الماء',
+          bodyEn: 'Turn off the tap while brushing.',
+          bodyAr: 'أغلق الصنبور أثناء تنظيف الأسنان.',
+          co2DeltaKg: 0.1,
+          wasteDeltaKg: 0,
+          sortOrder: 2,
+        ),
+        Challenge(
+          id: 'recycle',
+          titleEn: 'Recycle at home',
+          titleAr: 'إعادة التدوير',
+          bodyEn: 'Separate paper and plastic.',
+          bodyAr: 'افصل الورق والبلاستيك في المنزل.',
+          co2DeltaKg: 0.15,
+          wasteDeltaKg: 0.25,
+          sortOrder: 3,
+        ),
+        Challenge(
+          id: 'transport',
+          titleEn: 'Green transport',
+          titleAr: 'نقل أخضر',
+          bodyEn: 'Walk, bike, or use public transport.',
+          bodyAr: 'جرّب المشي أو الدراجة لمسافة قصيرة.',
+          co2DeltaKg: 0.3,
+          wasteDeltaKg: 0,
+          sortOrder: 4,
+        ),
+      ]);
+    _surveyQuestions
+      ..clear()
+      ..addAll([
+        SurveyQuestion(
+          id: '1',
+          questionAr: 'العمر (بالسنوات)',
+          questionEn: 'Age (Years)',
+          type: 'text',
+          optionsAr: [],
+          optionsEn: [],
+          required: true,
+          sortOrder: 1,
+        ),
+        SurveyQuestion(
+          id: '2',
+          questionAr: 'الجنس',
+          questionEn: 'Gender',
+          type: 'radio',
+          optionsAr: ['ذكر', 'أنثى'],
+          optionsEn: ['Male', 'Female'],
+          required: true,
+          sortOrder: 2,
+        ),
+        SurveyQuestion(
+          id: '3',
+          questionAr: 'أعلى مستوى تعليمي',
+          questionEn: 'Highest Level of Education',
+          type: 'radio',
+          optionsAr: [
+            'ثانوية عامة أو ما يعادلها',
+            'تدريب مهني/تقني',
+            'درجة البكالوريوس',
+            'درجة الماجستير',
+            'دكتوراه أو أعلى',
+          ],
+          optionsEn: [
+            'High School or equivalent',
+            'Vocational/Technical Training',
+            'Bachelor\'s Degree',
+            'Master\'s Degree',
+            'Doctorate or higher',
+          ],
+          required: true,
+          sortOrder: 3,
+        ),
+        SurveyQuestion(
+          id: '4',
+          questionAr: 'تكوين الأسرة الحالي',
+          questionEn: 'Current Household Composition',
+          type: 'radio',
+          optionsAr: [
+            'أعيش بمفردي',
+            'أعيش مع شريك/زوج',
+            'أعيش مع شريك/زوج وأطفال',
+            'أعيش مع عائلة/أصدقاء آخرين',
+            'أخرى',
+          ],
+          optionsEn: [
+            'Live alone',
+            'Live with partner/spouse',
+            'Live with partner/spouse and child(ren)',
+            'Live with other family/friends',
+            'Other',
+          ],
+          required: true,
+          sortOrder: 4,
+        ),
+        SurveyQuestion(
+          id: '5',
+          questionAr: 'نوع السكن',
+          questionEn: 'Type of Residence',
+          type: 'radio',
+          optionsAr: ['شقة/كوندو', 'منزل لعائلة واحدة', 'أخرى'],
+          optionsEn: ['Apartment/Condo', 'Single-family house', 'Other'],
+          required: true,
+          sortOrder: 5,
+        ),
+        SurveyQuestion(
+          id: '6',
+          questionAr: 'هل تملك أم تستأجر منزلك؟',
+          questionEn: 'Do you own or rent your home?',
+          type: 'radio',
+          optionsAr: ['تملك', 'إيجار'],
+          optionsEn: ['Own', 'Rent'],
+          required: true,
+          sortOrder: 6,
+        ),
+        SurveyQuestion(
+          id: '7',
+          questionAr: 'بشكل عام، كيف تصف المنطقة التي تعيش فيها؟',
+          questionEn: 'How would you describe the area you live in?',
+          type: 'radio',
+          optionsAr: ['حضري (مدينة)', 'ضواحي', 'ريفي'],
+          optionsEn: ['Urban', 'Suburban', 'Rural'],
+          required: true,
+          sortOrder: 7,
+        ),
+      ]);
+    _surveyQuestions2
+      ..clear()
+      ..addAll([
+        SurveyQuestion(
+          id: 's2_1',
+          questionAr: 'ما هو شعورك تجاه الاستدامة بعد استخدام التطبيق؟',
+          questionEn:
+              'How do you feel about sustainability after using the app?',
+          type: 'radio',
+          optionsAr: ['متحمس جداً', 'مهتم', 'محايد', 'غير مهتم'],
+          optionsEn: [
+            'Very Excited',
+            'Interested',
+            'Neutral',
+            'Not Interested',
+          ],
+          required: true,
+          sortOrder: 1,
+        ),
+        SurveyQuestion(
+          id: 's2_2',
+          questionAr: 'هل تنوي الاستمرار في التحديات الأسبوعية؟',
+          questionEn: 'Do you intend to continue the weekly challenges?',
+          type: 'radio',
+          optionsAr: ['نعم بالتأكيد', 'ربما', 'لا'],
+          optionsEn: ['Yes definitely', 'Maybe', 'No'],
+          required: true,
+          sortOrder: 2,
+        ),
+      ]);
+    _notifications
+      ..clear()
+      ..addAll([
+        AppNotification(
+          id: 'n1',
+          kind: NotificationKind.challenge,
+          title: 'تحدّي أسبوعي جديد',
+          body: 'أكمل 3 إجراءات صديقة للبيئة هذا الأسبوع لتتقدم.',
+          createdAt: now.subtract(const Duration(hours: 2)),
+          isRead: false,
+        ),
+        AppNotification(
+          id: 'n2',
+          kind: NotificationKind.tip,
+          title: 'نصيحة سريعة',
+          body: 'استخدم زجاجة قابلة لإعادة الاستخدام لتقليل البلاستيك.',
+          createdAt: now.subtract(const Duration(hours: 6)),
+          isRead: true,
+        ),
+      ]);
+    _leaderboard
+      ..clear()
+      ..addAll([
+        LeaderboardEntry(name: 'محمد خالد', points: 2500),
+        LeaderboardEntry(name: 'سارة منصور', points: 2300),
+        LeaderboardEntry(name: 'يوسف أحمد', points: 2100),
+      ]);
+    _quizQuestions
+      ..clear()
+      ..addAll([
+        QuizQuestion(
+          id: '1',
+          questionAr: 'ما فائدة استخدام المواصلات العامة؟',
+          questionEn: 'What is the benefit of using public transport?',
+          optionsAr: [
+            'تقلل تلوث الهواء',
+            'تستخدم طاقة أكثر',
+            'تأخذ مساحة أكبر',
+            'تنتج نفايات أكثر',
+          ],
+          optionsEn: [
+            'Reduces air pollution',
+            'Uses more energy',
+            'Takes up more space',
+            'Produces more waste',
+          ],
+          correctIndex: 0,
+          hintAr: 'فكر في عدد السيارات التي يتم الاستغناء عنها.',
+          hintEn: 'Think about the number of cars being replaced.',
+        ),
+        QuizQuestion(
+          id: '2',
+          questionAr: 'أي خيار يقلل النفايات المنزلية؟',
+          questionEn: 'Which option reduces household waste?',
+          optionsAr: [
+            'شراء عبوات أحادية الاستخدام',
+            'إعادة استخدام العلب والمرطبانات',
+            'رمي بقايا الطعام',
+            'زيادة التغليف',
+          ],
+          optionsEn: [
+            'Buying single-use containers',
+            'Reusing cans and jars',
+            'Throwing away food scraps',
+            'Increasing packaging',
+          ],
+          correctIndex: 1,
+          hintAr: 'الهدف هو تقليل ما تشتريه وتعيد استخدامه.',
+          hintEn: 'The goal is to reduce what you buy and reuse it.',
+        ),
+      ]);
     notifyListeners();
   }
 
@@ -761,6 +886,7 @@ class SustainabilityModel extends ChangeNotifier {
     await Future.wait([
       refreshSdgGoals(),
       refreshChallenges(),
+      refreshQuizQuestions(),
       refreshSurveyQuestions(),
       refreshSurveyQuestions2(),
       refreshEducationalVideos(),
@@ -768,6 +894,126 @@ class SustainabilityModel extends ChangeNotifier {
       refreshLeaderboard(),
       refreshAboutUs(),
     ]);
+  }
+
+  Future<void> refreshQuizQuestions() async {
+    if (!supabaseEnabled) {
+      _quizQuestions
+        ..clear()
+        ..addAll([
+          QuizQuestion(
+            id: '1',
+            questionAr: 'ما فائدة استخدام المواصلات العامة؟',
+            questionEn: 'What is the benefit of using public transport?',
+            optionsAr: [
+              'تقلل تلوث الهواء',
+              'تستخدم طاقة أكثر',
+              'تأخذ مساحة أكبر',
+              'تنتج نفايات أكثر',
+            ],
+            optionsEn: [
+              'Reduces air pollution',
+              'Uses more energy',
+              'Takes up more space',
+              'Produces more waste',
+            ],
+            correctIndex: 0,
+            hintAr: 'فكر في عدد السيارات التي يتم الاستغناء عنها.',
+            hintEn: 'Think about the number of cars being replaced.',
+          ),
+          QuizQuestion(
+            id: '2',
+            questionAr: 'أي خيار يقلل النفايات المنزلية؟',
+            questionEn: 'Which option reduces household waste?',
+            optionsAr: [
+              'شراء عبوات أحادية الاستخدام',
+              'إعادة استخدام العلب والمرطبانات',
+              'رمي بقايا الطعام',
+              'زيادة التغليف',
+            ],
+            optionsEn: [
+              'Buying single-use containers',
+              'Reusing cans and jars',
+              'Throwing away food scraps',
+              'Increasing packaging',
+            ],
+            correctIndex: 1,
+            hintAr: 'الهدف هو تقليل ما تشتريه وتعيد استخدامه.',
+            hintEn: 'The goal is to reduce what you buy and reuse it.',
+          ),
+        ]);
+      notifyListeners();
+      return;
+    }
+    try {
+      final rows = await _client!.from('quiz_questions').select().order('id');
+      _quizQuestions
+        ..clear()
+        ..addAll(
+          (rows as List).cast<Map<String, dynamic>>().map(QuizQuestion.fromRow),
+        );
+      notifyListeners();
+    } catch (_) {
+      // fallback to seed
+    }
+  }
+
+  Future<void> submitQuizAnswer({
+    required String questionId,
+    required int selectedOptionIndex,
+    required bool isCorrect,
+  }) async {
+    if (!supabaseEnabled) return;
+    final uid = _userId;
+    if (uid == null) return;
+    try {
+      await _client!.from('quiz_answers').upsert({
+        'user_id': uid,
+        'question_id': questionId,
+        'selected_option_index': selectedOptionIndex,
+        'is_correct': isCorrect,
+      }, onConflict: 'user_id,question_id');
+    } catch (e) {
+      debugPrint('Error submitting quiz answer: $e');
+    }
+  }
+
+  Future<void> submitQuizAnswers(List<Map<String, dynamic>> answers) async {
+    if (!supabaseEnabled) return;
+    final uid = _userId;
+    if (uid == null) return;
+    if (answers.isEmpty) return;
+
+    try {
+      final rows = answers.map((a) => {...a, 'user_id': uid}).toList();
+      debugPrint('Submitting ${rows.length} quiz answers to Supabase...');
+      final response = await _client!
+          .from('quiz_answers')
+          .upsert(rows, onConflict: 'user_id,question_id');
+      debugPrint('Quiz answers submitted successfully');
+    } catch (e) {
+      debugPrint('Error submitting quiz answers: $e');
+    }
+  }
+
+  Future<void> submitQuizResult({
+    required int score,
+    required int totalQuestions,
+  }) async {
+    if (!supabaseEnabled) return;
+    final uid = _userId;
+    if (uid == null) return;
+    try {
+      await _client!.from('quiz_results').upsert({
+        'user_id': uid,
+        'score': score,
+        'total_questions': totalQuestions,
+        'completed_at': DateTime.now().toIso8601String(),
+      });
+      debugPrint('Quiz result submitted successfully');
+    } catch (e) {
+      debugPrint('Error submitting quiz result: $e');
+    }
   }
 
   Future<void> refreshSurveyQuestions2() async {
@@ -992,6 +1238,10 @@ class SustainabilityModel extends ChangeNotifier {
     final localeText = (row['locale'] ?? 'ar').toString();
     _locale = Locale(localeText == 'en' ? 'en' : 'ar');
 
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.setString('selectedLanguage', _locale.languageCode);
+    });
+
     final themeText = (row['theme_mode'] ?? 'light').toString();
     _themeMode = themeText == 'dark' ? ThemeMode.dark : ThemeMode.light;
 
@@ -1001,6 +1251,11 @@ class SustainabilityModel extends ChangeNotifier {
         (row['waste_reduced_kg'] as num?)?.toDouble() ?? _wasteReducedKg;
     _hasCompletedSurvey = (row['has_completed_survey'] as bool?) ?? false;
     _hasCompletedSurvey2 = (row['has_completed_survey2'] as bool?) ?? false;
+
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.setBool('hasCompletedSurvey', _hasCompletedSurvey);
+    });
+
     _hasCompletedQuiz = (row['has_completed_quiz'] as bool?) ?? false;
     _hasCompletedEvaluation =
         (row['has_completed_evaluation'] as bool?) ?? false;
@@ -1108,6 +1363,11 @@ class SustainabilityModel extends ChangeNotifier {
     _locale =
         _locale.languageCode == 'ar' ? const Locale('en') : const Locale('ar');
     notifyListeners();
+
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.setString('selectedLanguage', _locale.languageCode);
+    });
+
     if (!supabaseEnabled) return;
     final uid = _userId;
     if (uid == null) return;
@@ -1188,9 +1448,33 @@ class SustainabilityModel extends ChangeNotifier {
     });
   }
 
+  void selectLanguage(Locale locale) {
+    _locale = locale;
+    _hasSelectedLanguage = true;
+    notifyListeners();
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.setBool('hasSelectedLanguage', true);
+      prefs.setString('selectedLanguage', _locale.languageCode);
+    });
+
+    if (supabaseEnabled) {
+      final uid = _userId;
+      if (uid != null) {
+        _client!
+            .from('profiles')
+            .update({'locale': _locale.languageCode})
+            .eq('id', uid);
+      }
+    }
+  }
+
   Future<void> submitSurvey(Map<String, dynamic> answers) async {
     _hasCompletedSurvey = true;
     notifyListeners();
+
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.setBool('hasCompletedSurvey', true);
+    });
 
     if (!supabaseEnabled) return;
 

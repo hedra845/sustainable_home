@@ -78,13 +78,7 @@ class _HubHomeScreenState extends State<HubHomeScreen> {
     return Scaffold(
       body: SafeArea(
         child: RefreshIndicator(
-          onRefresh: () async {
-            await Future.wait([
-              _fetchBanner(),
-              model.refreshPublicData(),
-              if (model.isAuthenticated) model.refreshProfile(),
-            ]);
-          },
+          onRefresh: _fetchBanner,
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(

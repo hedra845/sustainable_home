@@ -27,7 +27,14 @@ class ImpactPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: colorScheme.onSurface,
+            ),
+          ),
           const SizedBox(height: 12),
           ...rows.map((r) {
             return Container(
@@ -42,8 +49,22 @@ class ImpactPanel extends StatelessWidget {
                 children: [
                   Icon(r.icon, color: colorScheme.primary),
                   const SizedBox(width: 10),
-                  Expanded(child: Text(r.label, style: const TextStyle(fontWeight: FontWeight.w700))),
-                  Text(r.value, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Expanded(
+                    child: Text(
+                      r.label,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    r.value,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
                 ],
               ),
             );

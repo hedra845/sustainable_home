@@ -84,7 +84,7 @@ class _SurveyScreenState extends State<SurveyScreen> {
             Text(
               AppStrings.get('surveySubtitle', context),
               style: TextStyle(
-                color: colorScheme.onSurfaceVariant,
+                color: colorScheme.onSurface,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -159,7 +159,11 @@ class _SurveyScreenState extends State<SurveyScreen> {
           children: [
             Text(
               q.questionFor(locale),
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: colorScheme.onSurface,
+              ),
             ),
             const SizedBox(height: 12),
             child,

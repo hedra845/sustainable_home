@@ -10,10 +10,17 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize Notifications
-  await NotificationsService.initialize();
+  try {
+    await NotificationsService.initialize();
+  } catch (e) {
+    debugPrint('Notifications initialization failed: $e');
+  }
 
   final prefs = await SharedPreferences.getInstance();
   final hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
+  final hasSelectedLanguage = prefs.getBool('hasSelectedLanguage') ?? false;
+  final hasCompletedSurvey = prefs.getBool('hasCompletedSurvey') ?? false;
+  final selectedLanguage = prefs.getString('selectedLanguage') ?? 'ar';
 
   const isFlutterTest = bool.fromEnvironment('FLUTTER_TEST');
   const supabaseUrl = String.fromEnvironment(
@@ -32,15 +39,23 @@ Future<void> main() async {
       supabaseAnonKey.isNotEmpty &&
       !supabaseAnonKey.toUpperCase().contains('YOUR_');
 
-  final supabaseEnabled = !isFlutterTest && validUrl && validKey;
+  bool supabaseEnabled = !isFlutterTest && validUrl && validKey;
   if (supabaseEnabled) {
-    await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
+    try {
+      await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
+    } catch (e) {
+      debugPrint('Supabase initialization failed: $e');
+      supabaseEnabled = false;
+    }
   }
 
   runApp(
     SustainabilityHubApp(
       supabaseEnabled: supabaseEnabled,
       hasSeenOnboarding: hasSeenOnboarding,
+      hasSelectedLanguage: hasSelectedLanguage,
+      hasCompletedSurvey: hasCompletedSurvey,
+      selectedLanguage: selectedLanguage,
     ),
   );
 }

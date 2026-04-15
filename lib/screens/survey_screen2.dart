@@ -72,7 +72,9 @@ class _SurveyScreen2State extends State<SurveyScreen2> {
       return Scaffold(
         appBar: AppBar(
           title: Text(
-            locale.languageCode == 'ar' ? 'استطلاع رأي إضافي' : 'Feedback Survey',
+            locale.languageCode == 'ar'
+                ? 'استطلاع رأي إضافي'
+                : 'Feedback Survey',
           ),
         ),
         body: const Center(child: CircularProgressIndicator()),
@@ -95,7 +97,7 @@ class _SurveyScreen2State extends State<SurveyScreen2> {
                   ? 'رأيك يهمنا لتحسين تجربة التطبيق'
                   : 'Your opinion matters to improve the app experience',
               style: TextStyle(
-                color: colorScheme.onSurfaceVariant,
+                color: colorScheme.onSurface,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -170,7 +172,11 @@ class _SurveyScreen2State extends State<SurveyScreen2> {
           children: [
             Text(
               q.questionFor(locale),
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: colorScheme.onSurface,
+              ),
             ),
             const SizedBox(height: 12),
             child,

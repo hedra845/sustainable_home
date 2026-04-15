@@ -161,7 +161,10 @@ class ProfileScreen extends StatelessWidget {
         leading: Icon(Icons.info_outline, color: colorScheme.primary),
         title: Text(
           locale.languageCode == 'ar' ? 'معلومات عنا' : 'About Us',
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: colorScheme.onSurface,
+          ),
         ),
         trailing: const Icon(Icons.chevron_right),
       ),
@@ -185,9 +188,18 @@ class ProfileScreen extends StatelessWidget {
         leading: Icon(Icons.support_agent, color: colorScheme.primary),
         title: Text(
           AppStrings.get('supportChat', context),
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: colorScheme.onSurface,
+          ),
         ),
-        subtitle: Text(AppStrings.get('supportChatSubtitle', context)),
+        subtitle: Text(
+          AppStrings.get('supportChatSubtitle', context),
+          style: TextStyle(
+            color: colorScheme.onSurface,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         trailing: const Icon(Icons.chevron_right),
       ),
     );
@@ -251,9 +263,10 @@ class ProfileScreen extends StatelessWidget {
                 children: [
                   Text(
                     val,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -261,7 +274,7 @@ class ProfileScreen extends StatelessWidget {
                     label,
                     style: TextStyle(
                       fontSize: 12,
-                      color: colorScheme.onSurfaceVariant,
+                      color: colorScheme.onSurface,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -288,7 +301,11 @@ class ProfileScreen extends StatelessWidget {
       children: [
         Text(
           AppStrings.get('leaderboard', context),
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: colorScheme.onSurface,
+          ),
         ),
         const SizedBox(height: 12),
         Card(
@@ -429,16 +446,17 @@ class _ProfileHeader extends StatelessWidget {
                 children: [
                   Text(
                     name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
                     style: TextStyle(
-                      color: colorScheme.onSurfaceVariant,
+                      color: colorScheme.onSurface,
                       fontWeight: FontWeight.w600,
                     ),
                   ),

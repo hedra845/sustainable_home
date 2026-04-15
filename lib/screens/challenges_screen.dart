@@ -119,9 +119,10 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                           Expanded(
                             child: Text(
                               AppStrings.get('weeklyProgress', context),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
+                                color: colorScheme.onSurface,
                               ),
                             ),
                           ),
@@ -171,12 +172,15 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                         },
                         title: Text(
                           item.titleFor(locale),
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.onSurface,
+                          ),
                         ),
                         subtitle: Text(
                           item.bodyFor(locale),
                           style: TextStyle(
-                            color: colorScheme.onSurfaceVariant,
+                            color: colorScheme.onSurface,
                             fontWeight: FontWeight.w600,
                           ),
                         ),

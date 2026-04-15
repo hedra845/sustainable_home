@@ -11,16 +11,23 @@ import '../screens/splash_screen.dart';
 import '../screens/onboarding_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/survey_screen.dart';
+import '../screens/language_selection_screen.dart';
 
 class SustainabilityHubApp extends StatefulWidget {
   const SustainabilityHubApp({
     super.key,
     this.supabaseEnabled = false,
     this.hasSeenOnboarding = false,
+    this.hasSelectedLanguage = false,
+    this.hasCompletedSurvey = false,
+    this.selectedLanguage = 'ar',
   });
 
   final bool supabaseEnabled;
   final bool hasSeenOnboarding;
+  final bool hasSelectedLanguage;
+  final bool hasCompletedSurvey;
+  final String selectedLanguage;
 
   @override
   State<SustainabilityHubApp> createState() => SustainabilityHubAppState();
@@ -35,6 +42,9 @@ class SustainabilityHubAppState extends State<SustainabilityHubApp> {
     model = SustainabilityModel(
       supabaseEnabled: widget.supabaseEnabled,
       initialHasSeenOnboarding: widget.hasSeenOnboarding,
+      initialHasSelectedLanguage: widget.hasSelectedLanguage,
+      initialHasCompletedSurvey: widget.hasCompletedSurvey,
+      initialLocale: Locale(widget.selectedLanguage),
     );
     // Request Notifications Permission on Startup
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -50,165 +60,162 @@ class SustainabilityHubAppState extends State<SustainabilityHubApp> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: model,
-      builder: (context, _) {
-        return MaterialApp(
-          title: 'My Sustainable Home',
-          debugShowCheckedModeBanner: false,
-          locale: model.locale,
-          supportedLocales: const [Locale('ar'), Locale('en')],
-          localizationsDelegates: const [
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
-          themeMode: model.themeMode,
-          theme: ThemeData(
-            useMaterial3: true,
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: Colors.green,
-              primary: const Color(0xFF16A34A),
-              secondary: const Color(0xFF22C55E),
-              tertiary: const Color(0xFF4ADE80),
-              surface: Colors.white,
-            ),
-            textTheme: GoogleFonts.cairoTextTheme(),
-            scaffoldBackgroundColor: Colors.white,
-            appBarTheme: const AppBarTheme(
-              centerTitle: true,
-              elevation: 0,
-              surfaceTintColor: Colors.transparent,
-            ),
-            cardTheme: CardTheme(
-              elevation: 0,
-              clipBehavior: Clip.antiAlias,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(22),
+    return SustainabilityProvider(
+      model: model,
+      child: AnimatedBuilder(
+        animation: model,
+        builder: (context, _) {
+          return MaterialApp(
+            title: 'My Sustainable Home',
+            debugShowCheckedModeBanner: false,
+            locale: model.locale,
+            supportedLocales: const [Locale('ar'), Locale('en')],
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            themeMode: model.themeMode,
+            theme: ThemeData(
+              useMaterial3: true,
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: Colors.green,
+                primary: const Color(0xFF16A34A),
+                secondary: const Color(0xFF22C55E),
+                tertiary: const Color(0xFF4ADE80),
+                surface: Colors.white,
               ),
-            ),
-            dividerTheme: const DividerThemeData(space: 1, thickness: 1),
-            snackBarTheme: const SnackBarThemeData(
-              behavior: SnackBarBehavior.floating,
-            ),
-            navigationBarTheme: const NavigationBarThemeData(
-              height: 70,
-              indicatorShape: StadiumBorder(),
-            ),
-            tabBarTheme: const TabBarTheme(dividerColor: Colors.transparent),
-            listTileTheme: ListTileThemeData(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+              textTheme: GoogleFonts.cairoTextTheme(),
+              scaffoldBackgroundColor: Colors.white,
+              appBarTheme: const AppBarTheme(
+                centerTitle: true,
+                elevation: 0,
+                surfaceTintColor: Colors.transparent,
               ),
-            ),
-            checkboxTheme: CheckboxThemeData(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(6),
+              cardTheme: CardTheme(
+                elevation: 0,
+                clipBehavior: Clip.antiAlias,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(22),
+                ),
               ),
-            ),
-            filledButtonTheme: FilledButtonThemeData(
-              style: FilledButton.styleFrom(
-                shape: const StadiumBorder(),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 14,
+              dividerTheme: const DividerThemeData(space: 1, thickness: 1),
+              snackBarTheme: const SnackBarThemeData(
+                behavior: SnackBarBehavior.floating,
+              ),
+              navigationBarTheme: const NavigationBarThemeData(
+                height: 70,
+                indicatorShape: StadiumBorder(),
+              ),
+              tabBarTheme: const TabBarTheme(dividerColor: Colors.transparent),
+              listTileTheme: ListTileThemeData(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              checkboxTheme: CheckboxThemeData(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+              filledButtonTheme: FilledButtonThemeData(
+                style: FilledButton.styleFrom(
+                  shape: const StadiumBorder(),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 14,
+                  ),
+                ),
+              ),
+              outlinedButtonTheme: OutlinedButtonThemeData(
+                style: OutlinedButton.styleFrom(
+                  shape: const StadiumBorder(),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 14,
+                  ),
+                ),
+              ),
+              inputDecorationTheme: InputDecorationTheme(
+                filled: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
                 ),
               ),
             ),
-            outlinedButtonTheme: OutlinedButtonThemeData(
-              style: OutlinedButton.styleFrom(
-                shape: const StadiumBorder(),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 14,
-                ),
-              ),
-            ),
-            inputDecorationTheme: InputDecorationTheme(
-              filled: true,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-          darkTheme: ThemeData(
-            useMaterial3: true,
-            brightness: Brightness.dark,
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: Colors.green,
+            darkTheme: ThemeData(
+              useMaterial3: true,
               brightness: Brightness.dark,
-              primary: const Color(0xFF22C55E),
-              secondary: const Color(0xFF4ADE80),
-              tertiary: const Color(0xFF86EFAC),
-            ),
-            textTheme: GoogleFonts.cairoTextTheme(),
-            appBarTheme: const AppBarTheme(
-              centerTitle: true,
-              elevation: 0,
-              surfaceTintColor: Colors.transparent,
-            ),
-            cardTheme: CardTheme(
-              elevation: 0,
-              clipBehavior: Clip.antiAlias,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(22),
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: Colors.green,
+                brightness: Brightness.dark,
+                primary: const Color(0xFF22C55E),
+                secondary: const Color(0xFF4ADE80),
+                tertiary: const Color(0xFF86EFAC),
               ),
-            ),
-            dividerTheme: const DividerThemeData(space: 1, thickness: 1),
-            snackBarTheme: const SnackBarThemeData(
-              behavior: SnackBarBehavior.floating,
-            ),
-            navigationBarTheme: const NavigationBarThemeData(
-              height: 70,
-              indicatorShape: StadiumBorder(),
-            ),
-            tabBarTheme: const TabBarTheme(dividerColor: Colors.transparent),
-            listTileTheme: ListTileThemeData(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+              textTheme: GoogleFonts.cairoTextTheme(),
+              appBarTheme: const AppBarTheme(
+                centerTitle: true,
+                elevation: 0,
+                surfaceTintColor: Colors.transparent,
               ),
-            ),
-            checkboxTheme: CheckboxThemeData(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(6),
+              cardTheme: CardTheme(
+                elevation: 0,
+                clipBehavior: Clip.antiAlias,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(22),
+                ),
               ),
-            ),
-            filledButtonTheme: FilledButtonThemeData(
-              style: FilledButton.styleFrom(
-                shape: const StadiumBorder(),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 14,
+              dividerTheme: const DividerThemeData(space: 1, thickness: 1),
+              snackBarTheme: const SnackBarThemeData(
+                behavior: SnackBarBehavior.floating,
+              ),
+              navigationBarTheme: const NavigationBarThemeData(
+                height: 70,
+                indicatorShape: StadiumBorder(),
+              ),
+              tabBarTheme: const TabBarTheme(dividerColor: Colors.transparent),
+              listTileTheme: ListTileThemeData(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              checkboxTheme: CheckboxThemeData(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+              filledButtonTheme: FilledButtonThemeData(
+                style: FilledButton.styleFrom(
+                  shape: const StadiumBorder(),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 14,
+                  ),
+                ),
+              ),
+              outlinedButtonTheme: OutlinedButtonThemeData(
+                style: OutlinedButton.styleFrom(
+                  shape: const StadiumBorder(),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 14,
+                  ),
+                ),
+              ),
+              inputDecorationTheme: InputDecorationTheme(
+                filled: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
                 ),
               ),
             ),
-            outlinedButtonTheme: OutlinedButtonThemeData(
-              style: OutlinedButton.styleFrom(
-                shape: const StadiumBorder(),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 14,
-                ),
-              ),
-            ),
-            inputDecorationTheme: InputDecorationTheme(
-              filled: true,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-          builder: (context, child) {
-            return SustainabilityProvider(
-              model: model,
-              child: child ?? const SizedBox.shrink(),
-            );
-          },
-          home: const AppShell(),
-        );
-      },
+            home: const AppShell(),
+          );
+        },
+      ),
     );
   }
 }
@@ -245,6 +252,7 @@ class _AppShellState extends State<AppShell> {
     final model = SustainabilityProvider.of(context);
 
     if (!_splashDone) return const SplashScreen();
+    if (!model.hasSelectedLanguage) return const LanguageSelectionScreen();
     if (!model.hasSeenOnboarding) return const OnboardingScreen();
     if (!model.isAuthenticated) return const LoginScreen();
     if (!model.hasCompletedSurvey) return const SurveyScreen();
