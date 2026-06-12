@@ -1188,43 +1188,19 @@ class SustainabilityModel extends ChangeNotifier {
       return;
     }
 
-    if (row == null) {
-      final payload = <String, dynamic>{
-        'id': uid,
-        'locale': _locale.languageCode,
-        'theme_mode': isDarkMode ? 'dark' : 'light',
-        'full_name': _authFullName(),
-        'has_completed_quiz': false,
-        'has_completed_evaluation': false,
-        'has_completed_survey2': false,
-      }..removeWhere((_, v) => v == null);
-
-      try {
-        await _client!.from('profiles').insert(payload);
-        row =
-            await _client!
-                .from('profiles')
-                .select()
-                .eq('id', uid)
-                .maybeSingle();
-      } catch (_) {
-        return;
-      }
-    } else {
-      final existing = (row['full_name'] ?? '').toString().trim();
-      final authName = _authFullName();
-      if (existing.isEmpty && authName != null) {
-        try {
-          await _client!
-              .from('profiles')
-              .update({'full_name': authName})
-              .eq('id', uid);
-          row['full_name'] = authName;
-        } catch (_) {}
-      }
-    }
-
     if (row == null) return;
+
+    final existing = (row['full_name'] ?? '').toString().trim();
+    final authName = _authFullName();
+    if (existing.isEmpty && authName != null) {
+      try {
+        await _client!
+            .from('profiles')
+            .update({'full_name': authName})
+            .eq('id', uid);
+        row['full_name'] = authName;
+      } catch (_) {}
+    }
 
     _fullName =
         (row['full_name'] ?? '').toString().trim().isEmpty
