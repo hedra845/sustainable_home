@@ -13,7 +13,7 @@ val keystorePropertiesFile = rootProject.file("key.properties")
 keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 
 android {
-    namespace = "com.sustainablehome.app"
+    namespace = "com.sustainableehome.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "27.0.12077973"
 
@@ -28,7 +28,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.sustainablehome.app"
+        applicationId = "com.sustainableehome.app"
         minSdk = 21
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

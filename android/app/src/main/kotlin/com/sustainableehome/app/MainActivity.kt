@@ -1,4 +1,4 @@
-package com.sustainablehome.app
+package com.sustainableehome.app
 
 import io.flutter.embedding.android.FlutterActivity
 
