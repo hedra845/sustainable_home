@@ -1609,6 +1609,21 @@ class SustainabilityModel extends ChangeNotifier {
     await _client!.auth.signOut();
   }
 
+  Future<void> deleteAccount() async {
+    if (!supabaseEnabled) {
+      _isAuthenticated = false;
+      notifyListeners();
+      return;
+    }
+    try {
+      final user = _client!.auth.currentUser;
+      if (user != null) {
+        await _client!.from('profiles').delete().eq('id', user.id);
+      }
+    } catch (_) {}
+    await _client!.auth.signOut();
+  }
+
   Future<void> addImpact({
     String actionType = 'manual',
     double co2DeltaKg = 0,

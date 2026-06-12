@@ -136,6 +136,8 @@ class ProfileScreen extends StatelessWidget {
               _buildAboutUsButton(context),
               const SizedBox(height: 12),
               _buildSupportButton(context),
+              const SizedBox(height: 12),
+              _buildDeleteAccountButton(context, model),
             ],
           ),
         ),
@@ -201,6 +203,56 @@ class ProfileScreen extends StatelessWidget {
           ),
         ),
         trailing: const Icon(Icons.chevron_right),
+      ),
+    );
+  }
+
+  Widget _buildDeleteAccountButton(BuildContext context, SustainabilityModel model) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final locale = Localizations.localeOf(context);
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.red.withOpacity(0.5)),
+      ),
+      child: ListTile(
+        onTap: () {
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: Text(locale.languageCode == 'ar' ? 'مسح الحساب' : 'Delete Account'),
+              content: Text(locale.languageCode == 'ar' 
+                  ? 'هل أنت متأكد أنك تريد مسح حسابك؟ لا يمكن التراجع عن هذه الخطوة.' 
+                  : 'Are you sure you want to delete your account? This action cannot be undone.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: Text(locale.languageCode == 'ar' ? 'إلغاء' : 'Cancel'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    model.deleteAccount();
+                  },
+                  child: Text(
+                    locale.languageCode == 'ar' ? 'مسح' : 'Delete',
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+        leading: const Icon(Icons.delete_forever, color: Colors.red),
+        title: Text(
+          locale.languageCode == 'ar' ? 'مسح الحساب' : 'Delete Account',
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.red,
+          ),
+        ),
+        trailing: const Icon(Icons.chevron_right, color: Colors.red),
       ),
     );
   }
