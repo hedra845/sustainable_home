@@ -92,7 +92,7 @@ class SustainabilityHubAppState extends State<SustainabilityHubApp> {
                 elevation: 0,
                 surfaceTintColor: Colors.transparent,
               ),
-              cardTheme: CardTheme(
+              cardTheme: CardThemeData(
                 elevation: 0,
                 clipBehavior: Clip.antiAlias,
                 shape: RoundedRectangleBorder(
@@ -107,7 +107,7 @@ class SustainabilityHubAppState extends State<SustainabilityHubApp> {
                 height: 70,
                 indicatorShape: StadiumBorder(),
               ),
-              tabBarTheme: const TabBarTheme(dividerColor: Colors.transparent),
+              tabBarTheme: const TabBarThemeData(dividerColor: Colors.transparent),
               listTileTheme: ListTileThemeData(
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -160,7 +160,7 @@ class SustainabilityHubAppState extends State<SustainabilityHubApp> {
                 elevation: 0,
                 surfaceTintColor: Colors.transparent,
               ),
-              cardTheme: CardTheme(
+              cardTheme: CardThemeData(
                 elevation: 0,
                 clipBehavior: Clip.antiAlias,
                 shape: RoundedRectangleBorder(
@@ -175,7 +175,7 @@ class SustainabilityHubAppState extends State<SustainabilityHubApp> {
                 height: 70,
                 indicatorShape: StadiumBorder(),
               ),
-              tabBarTheme: const TabBarTheme(dividerColor: Colors.transparent),
+              tabBarTheme: const TabBarThemeData(dividerColor: Colors.transparent),
               listTileTheme: ListTileThemeData(
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
